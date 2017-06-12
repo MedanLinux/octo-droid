@@ -83,6 +83,15 @@ public class Github4AndroidActivity extends BaseActivity implements View.OnClick
 
         Log.d(LOG_TAG, "onCreate");
 
+        myReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+
+            }
+        };
+
+        registerReceiver(myReceiver, new IntentFilter());
+
         Gh4Application app = Gh4Application.get();
         if (app.isAuthorized()) {
             if (!handleIntent(getIntent())) {
@@ -104,15 +113,6 @@ public class Github4AndroidActivity extends BaseActivity implements View.OnClick
 
             handleIntent(getIntent());
         }
-
-        myReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-
-            }
-        };
-
-        registerReceiver(myReceiver, new IntentFilter());
     }
 
     @Override
