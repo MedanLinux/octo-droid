@@ -24,20 +24,30 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.support.annotation.IdRes;
+import android.support.annotation.NonNull;
 import android.support.design.widget.AppBarLayout;
 import android.support.v4.util.Pair;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
 import com.gh4a.BackgroundTask;
 import com.gh4a.BaseActivity;
 import com.gh4a.BuildConfig;
 import com.gh4a.DefaultClient;
 import com.gh4a.Gh4Application;
 import com.gh4a.R;
+import com.gh4a.net.RestConstant;
+import com.gh4a.net.RestService;
 import com.gh4a.utils.IntentUtils;
 
 import org.eclipse.egit.github.core.User;
@@ -51,6 +61,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 /**
  * todo activity lifecycle
@@ -76,6 +92,15 @@ public class Github4AndroidActivity extends BaseActivity implements View.OnClick
     private static final String LOG_TAG = Github4AndroidActivity.class.getSimpleName();
 
     private BroadcastReceiver myReceiver;
+
+    private EditText usernameEt;
+    private LinearLayout searchContentLl;
+    private ImageView imageHeaderIv;
+    private LinearLayout userInfoContentLl;
+    private TextView userLoginTv;
+    private TextView userNameTv;
+    private TextView userLocationTv;
+    private Button cariLagiBt;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -112,6 +137,17 @@ public class Github4AndroidActivity extends BaseActivity implements View.OnClick
             mProgress = findViewById(R.id.login_progress_container);
 
             handleIntent(getIntent());
+
+            findViewById(R.id.cari_button).setOnClickListener(this);
+            usernameEt = (EditText) findViewById(R.id.username_et);
+            searchContentLl = (LinearLayout) findViewById(R.id.search_content);
+            imageHeaderIv = (ImageView) findViewById(R.id.image_header);
+            userInfoContentLl = (LinearLayout) findViewById(R.id.user_info_content);
+            userLoginTv = (TextView) findViewById(R.id.user_login);
+            userNameTv = (TextView) findViewById(R.id.user_name);
+            userLocationTv = (TextView) findViewById(R.id.user_location);
+
+            findViewById(R.id.cari_lagi_button).setOnClickListener(this);
         }
     }
 
@@ -247,8 +283,17 @@ public class Github4AndroidActivity extends BaseActivity implements View.OnClick
 
     @Override
     public void onClick(View view) {
-        if (view.getId() == R.id.login_button) {
-            triggerLogin();
+        switch (view.getId()) {
+            case R.id.login_button:
+                triggerLogin();
+                break;
+            case R.id.cari_button:
+                triggerCari(usernameEt.getText().toString().trim());
+                break;
+            case R.id.cari_lagi_button:
+                searchContentLl.setVisibility(View.VISIBLE);
+                userInfoContentLl.setVisibility(View.GONE);
+                break;
         }
     }
 
@@ -272,6 +317,51 @@ public class Github4AndroidActivity extends BaseActivity implements View.OnClick
         launchLogin(this);
         mContent.setVisibility(View.GONE);
         mProgress.setVisibility(View.VISIBLE);
+    }
+
+    private void triggerCari(@NonNull String username) {
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(RestConstant.BASE_URL)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+        RestService service = retrofit.create(RestService.class);
+
+
+        mProgress.setVisibility(View.VISIBLE);
+        service.getUser(username).enqueue(new Callback<com.gh4a.net.model.User>() {
+            @Override
+            public void onResponse(Call<com.gh4a.net.model.User> call, Response<com.gh4a.net.model.User> response) {
+                mProgress.setVisibility(View.GONE);
+                try {
+                    //noinspection ConstantConditions
+                    renderUserInfo(response.body());
+                } catch (NullPointerException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<com.gh4a.net.model.User> call, Throwable t) {
+                Toast.makeText(Github4AndroidActivity.this, "Gagal mengambil data user", Toast.LENGTH_SHORT).show();
+                Log.e(LOG_TAG, t.getMessage());
+            }
+        });
+    }
+
+    private void renderUserInfo(@NonNull com.gh4a.net.model.User user) {
+        mContent.setVisibility(View.GONE);
+        searchContentLl.setVisibility(View.GONE);
+
+        userInfoContentLl.setVisibility(View.VISIBLE);
+
+        userNameTv.setText(user.getName());
+        userLoginTv.setText(user.getLogin());
+        userLocationTv.setText(user.getLocation());
+
+        Glide.with(this)
+                .load(user.getAvatarUrl())
+                .into(imageHeaderIv);
+
     }
 
     private class FetchTokenTask extends BackgroundTask<Pair<User, String>> {
