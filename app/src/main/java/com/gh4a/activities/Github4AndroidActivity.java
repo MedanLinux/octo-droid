@@ -62,6 +62,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+import okhttp3.OkHttpClient;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -320,9 +321,17 @@ public class Github4AndroidActivity extends BaseActivity implements View.OnClick
     }
 
     private void triggerCari(@NonNull String username) {
+
+        OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder();
+        // TODO: 6/13/17 stetho
+//        Stetho.initializeWithDefaults(this);
+//        okHttpClientBuilder.addNetworkInterceptor(new StethoInterceptor());
+//        okHttpClientBuilder.addInterceptor(new HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY));
+
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(RestConstant.BASE_URL)
                 .addConverterFactory(GsonConverterFactory.create())
+                .client(okHttpClientBuilder.build())
                 .build();
         RestService service = retrofit.create(RestService.class);
 
